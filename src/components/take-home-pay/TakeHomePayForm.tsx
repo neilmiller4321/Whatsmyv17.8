@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { PoundSterling, Wallet, GraduationCap, FileCode, Settings } from 'lucide-react';
+import { PoundSterling, Wallet, GraduationCap, FileCode } from 'lucide-react';
 import { FormData, InputFieldState } from '../../hooks/useTakeHomePay';
 
 // Import tab components
@@ -7,7 +7,6 @@ import SalaryTab from './tabs/SalaryTab';
 import PensionTab from './tabs/PensionTab';
 import StudentLoansTab from './tabs/StudentLoansTab';
 import TaxCodeTab from './tabs/TaxCodeTab';
-import AdditionalSettingsTab from './tabs/AdditionalSettingsTab';
 
 interface TakeHomePayFormProps {
   activeTab: 'salary' | 'pension' | 'student-loans' | 'tax-code' | 'additional';
@@ -42,8 +41,7 @@ const TakeHomePayForm: React.FC<TakeHomePayFormProps> = ({
     { id: 'salary', label: 'Salary', icon: <Wallet className="w-4 h-4 mr-2" /> },
     { id: 'pension', label: 'Pension', icon: <PoundSterling className="w-4 h-4 mr-2" /> },
     { id: 'student-loans', label: 'Student Loans', icon: <GraduationCap className="w-4 h-4 mr-2" /> },
-    { id: 'tax-code', label: 'Tax Code', icon: <FileCode className="w-4 h-4 mr-2" /> },
-    { id: 'additional', label: 'Additional Settings', icon: <Settings className="w-4 h-4 mr-2" /> }
+    { id: 'tax-code', label: 'Tax Code', icon: <FileCode className="w-4 h-4 mr-2" /> }
   ];
 
   return (
@@ -97,13 +95,6 @@ const TakeHomePayForm: React.FC<TakeHomePayFormProps> = ({
         
         <div className={activeTab === 'tax-code' ? 'block' : 'hidden'}>
           <TaxCodeTab 
-            formData={formData}
-            handleInputChange={handleInputChange}
-          />
-        </div>
-        
-        <div className={activeTab === 'additional' ? 'block' : 'hidden'}>
-          <AdditionalSettingsTab
             formData={formData}
             handleInputChange={handleInputChange}
           />

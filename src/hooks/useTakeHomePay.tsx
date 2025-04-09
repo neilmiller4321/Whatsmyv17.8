@@ -27,6 +27,7 @@ export interface FormData {
   pensionFrequency: PensionFrequency;
   earningsBasis: EarningsBasis;
   includeBonusPension: boolean;
+  showHourlyColumn: boolean;
   taxCode?: string;
 }
 
@@ -49,13 +50,14 @@ export const useTakeHomePay = () => {
     marriedCouplesAllowance: false,
     workingDaysPerWeek: 5,
     workingHoursPerDay: 7,
-    taxYear: '2024/25',
+    taxYear: '2025/26', // Changed from '2024/25' to '2025/26'
     pensionType: 'none',
     pensionValue: 0,
     pensionValueType: 'percentage',
     pensionFrequency: 'monthly',
     earningsBasis: 'total',
-    includeBonusPension: false
+    includeBonusPension: false,
+    showHourlyColumn: false
   });
 
   // Input field values (as strings to handle formatting)
@@ -229,7 +231,9 @@ export const useTakeHomePay = () => {
             value: formData.pensionValue,
             valueType: formData.pensionValueType,
             earningsBasis: formData.earningsBasis,
-            includeBonusPension: formData.includeBonusPension
+            includeBonusPension: formData.includeBonusPension,
+            // Make sure to include the frequency from the form
+            frequency: formData.pensionFrequency
           }
         });
         setResults(results);

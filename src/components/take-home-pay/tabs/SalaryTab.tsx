@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Settings, Info, Calendar, Clock } from 'lucide-react';
 import { FormData, InputFieldState } from '../../../hooks/useTakeHomePay';
@@ -79,13 +78,13 @@ const SalaryTab: React.FC<SalaryTabProps> = ({ formData, inputValues, handleInpu
                 {/* Left Column - Allowances and Settings */}
                 <div className="space-y-6">
                   {/* No NI */}
-                  <div>
-                    <label htmlFor='no-ni-switch' className="text-sm font-medium text-gray-700 flex items-center justify-between">
-                      <span>
-                        Exclude National Insurance
+                  <div className="pt-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center">
+                        <span className="text-sm font-medium text-gray-700">Exclude National Insurance</span>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <button type="button" className="ml-1.5 text-gray-400 hover:text-sunset-text transition-colors relative top-px">
+                            <button type="button" className="ml-1.5 text-gray-400 hover:text-sunset-text transition-colors">
                               <Info className="w-4 h-4" />
                             </button>
                           </PopoverTrigger>
@@ -93,25 +92,25 @@ const SalaryTab: React.FC<SalaryTabProps> = ({ formData, inputValues, handleInpu
                             <p>Select this if you're exempt from National Insurance contributions, such as if you're over state pension age.</p>
                           </PopoverContent>
                         </Popover>
-                      </span>
-                      <Switch
-                        id="no-ni-switch"
-                        checked={formData.noNI}
-                        onCheckedChange={(checked) => handleInputChange({
-                          target: { name: 'noNI', checked, type: 'checkbox' }
-                        } as React.ChangeEvent<HTMLInputElement>)}
-                      />
-                    </label>
+                      </div>
+                    </div>
+                    <Switch
+                      id="no-ni-switch"
+                      checked={formData.noNI}
+                      onCheckedChange={(checked) => handleInputChange({
+                        target: { name: 'noNI', checked, type: 'checkbox' }
+                      } as React.ChangeEvent<HTMLInputElement>)}
+                    />
                   </div>
 
                   {/* Blind Person's Allowance */}
-                  <div>
-                    <label htmlFor='blind-switch' className="text-sm font-medium text-gray-700 flex items-center justify-between">
-                      <span>
-                        Blind Person's Allowance
+                  <div className="pt-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center">
+                        <span className="text-sm font-medium text-gray-700">Blind Person's Allowance</span>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <button type="button" className="ml-1.5 text-gray-400 hover:text-sunset-text transition-colors relative top-px">
+                            <button type="button" className="ml-1.5 text-gray-400 hover:text-sunset-text transition-colors">
                               <Info className="w-4 h-4" />
                             </button>
                           </PopoverTrigger>
@@ -119,15 +118,41 @@ const SalaryTab: React.FC<SalaryTabProps> = ({ formData, inputValues, handleInpu
                             <p>Blind Person's Allowance is an additional tax-free allowance for people who are registered as blind or severely sight impaired.</p>
                           </PopoverContent>
                         </Popover>
-                      </span>
-                      <Switch
-                        id="blind-switch"
-                        checked={formData.blind}
-                        onCheckedChange={(checked) => handleInputChange({
-                          target: { name: 'blind', checked, type: 'checkbox' }
-                        } as React.ChangeEvent<HTMLInputElement>)}
-                      />
-                    </label>
+                      </div>
+                    </div>
+                    <Switch
+                      id="blind-switch"
+                      checked={formData.blind}
+                      onCheckedChange={(checked) => handleInputChange({
+                        target: { name: 'blind', checked, type: 'checkbox' }
+                      } as React.ChangeEvent<HTMLInputElement>)}
+                    />
+                  </div>
+
+                  {/* Show Hourly Column Switch */}
+                  <div className="pt-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center">
+                        <span className="text-sm font-medium text-gray-700">Show Hourly Column</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="ml-1.5 text-gray-400 hover:text-sunset-text transition-colors">
+                              <Info className="w-4 h-4" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent side="top" align="start" className="w-80 p-4 text-sm bg-white shadow-lg rounded-lg border border-gray-200 z-20">
+                            <p>Display hourly rate calculations in the results table.</p>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                    <Switch
+                      id="hourly-column-switch"
+                      checked={formData.showHourlyColumn}
+                      onCheckedChange={(checked) => handleInputChange({
+                        target: { name: 'showHourlyColumn', checked, type: 'checkbox' }
+                      } as React.ChangeEvent<HTMLInputElement>)}
+                    />
                   </div>
                 </div>
 
@@ -149,6 +174,7 @@ const SalaryTab: React.FC<SalaryTabProps> = ({ formData, inputValues, handleInpu
                       className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-sunset-start focus:border-sunset-start h-10 text-sm"
                     >
                       <option value="2024/25">2024/25</option>
+                      <option value="2025/26">2025/26</option>
                     </select>
                   </div>
 

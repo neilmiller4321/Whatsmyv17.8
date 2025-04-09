@@ -126,35 +126,43 @@ const TakeHomePayResults: React.FC<TakeHomePayResultsProps> = ({
                     <th className="py-4 px-4 font-medium text-center">Month</th>
                     <th className="py-4 px-4 font-medium text-center">Week</th>
                     <th className="py-4 px-4 font-medium text-center">Day</th>
-                    <th className="py-4 px-4 font-medium text-center">Hour</th>
+                    {formData.showHourlyColumn && (
+                      <th className="py-4 px-4 font-medium text-center">Hour</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="whitespace-nowrap">
                   {/* Gross Income */}
                   <tr className="hover:bg-gray-50">
                     <td className="py-3 px-4 font-medium">Gross income</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.annualGrossIncome.total)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.annualGrossIncome.total)}</td>
                     {formData.annualGrossBonus > 0 && (
-                      <td className="text-right py-3 px-4">{formatCurrency(results.bonusMonth.grossPay)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.bonusMonth.grossPay)}</td>
                     )}
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.grossPay)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.grossPay * 12 / 52)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.grossPay * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.grossPay * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.grossPay)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.grossPay * 12 / 52)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.grossPay * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
+                    {formData.showHourlyColumn && (
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.grossPay * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    )}
                   </tr>
                   
                   {/* Personal Allowance - Only show if gross salary > 100,000 */}
                   {results.annualGrossIncome.total > 100000 && (
                     <tr className="hover:bg-gray-50">
                       <td className="py-3 px-4">Personal allowance</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.taxAllowance.total)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.taxAllowance.total)}</td>
                       {formData.annualGrossBonus > 0 && (
-                        <td className="text-right py-3 px-4">{formatCurrency(results.taxAllowance.total / 12)}</td>
+                        <td className="text-center py-3 px-4">
+                          {formatCurrency(results.bonusMonth.personalAllowance)}
+                        </td>
                       )}
-                      <td className="text-right py-3 px-4">{formatCurrency(results.taxAllowance.total / 12)}</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.taxAllowance.total / 52)}</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.taxAllowance.total / ((formData.workingDaysPerWeek || 5) * 52))}</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.taxAllowance.total / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.taxAllowance.total / 12)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.taxAllowance.total / 52)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.taxAllowance.total / ((formData.workingDaysPerWeek || 5) * 52))}</td>
+                      {formData.showHourlyColumn && (
+                        <td className="text-center py-3 px-4">{formatCurrency(results.taxAllowance.total / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                      )}
                     </tr>
                   )}
                   
@@ -162,28 +170,32 @@ const TakeHomePayResults: React.FC<TakeHomePayResultsProps> = ({
                   {results.pensionContribution.total > 0 && (
                     <tr className="hover:bg-gray-50">
                       <td className="py-3 px-4">Pension deductions</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.pensionContribution.total)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.pensionContribution.total)}</td>
                       {formData.annualGrossBonus > 0 && (
-                        <td className="text-right py-3 px-4">{formatCurrency(results.bonusMonth.pensionContribution)}</td>
+                        <td className="text-center py-3 px-4">{formatCurrency(results.bonusMonth.pensionContribution)}</td>
                       )}
-                      <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.pensionContribution)}</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.pensionContribution * 12 / 52)}</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.pensionContribution * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.pensionContribution * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.pensionContribution)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.pensionContribution * 12 / 52)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.pensionContribution * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
+                      {formData.showHourlyColumn && (
+                        <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.pensionContribution * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                      )}
                     </tr>
                   )}
                   
                   {/* Taxable Income */}
                   <tr className="bg-gray-50/50 hover:bg-gray-50">
                     <td className="py-3 px-4">Taxable income</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.taxableIncome)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.taxableIncome)}</td>
                     {formData.annualGrossBonus > 0 && (
-                      <td className="text-right py-3 px-4">{formatCurrency(results.bonusMonth.taxableIncome)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.bonusMonth.taxableIncome)}</td>
                     )}
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.taxableIncome)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.taxableIncome * 12 / 52)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.taxableIncome * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.taxableIncome * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.taxableIncome)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.taxableIncome * 12 / 52)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.taxableIncome * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
+                    {formData.showHourlyColumn && (
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.taxableIncome * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    )}
                   </tr>
                   
                   {/* Income Tax */}
@@ -219,55 +231,63 @@ const TakeHomePayResults: React.FC<TakeHomePayResultsProps> = ({
                         </div>
                       )}
                     </td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.incomeTax.total)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.incomeTax.total)}</td>
                     {formData.annualGrossBonus > 0 && (
-                      <td className="text-right py-3 px-4">{formatCurrency(results.bonusMonth.tax)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.bonusMonth.tax)}</td>
                     )}
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.tax)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.tax * 12 / 52)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.tax * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.tax * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.tax)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.tax * 12 / 52)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.tax * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
+                    {formData.showHourlyColumn && (
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.tax * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    )}
                   </tr>
                   
                   {/* National Insurance */}
                   <tr className="bg-gray-50/50 hover:bg-gray-50">
                     <td className="py-3 px-4">National Insurance</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.employeeNI.total)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.employeeNI.total)}</td>
                     {formData.annualGrossBonus > 0 && (
-                      <td className="text-right py-3 px-4">{formatCurrency(results.bonusMonth.ni)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.bonusMonth.ni)}</td>
                     )}
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.ni)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.ni * 12 / 52)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.ni * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.ni * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.ni)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.ni * 12 / 52)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.ni * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
+                    {formData.showHourlyColumn && (
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.ni * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    )}
                   </tr>
                   
                   {/* Student Loan - Combined total */}
                   {results.studentLoanRepayments.total > 0 && (
                     <tr className="hover:bg-gray-50">
                       <td className="py-3 px-4">Student loan</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.studentLoanRepayments.total)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.studentLoanRepayments.total)}</td>
                       {formData.annualGrossBonus > 0 && (
-                        <td className="text-right py-3 px-4">{formatCurrency(results.bonusMonth.studentLoan)}</td>
+                        <td className="text-center py-3 px-4">{formatCurrency(results.bonusMonth.studentLoan)}</td>
                       )}
-                      <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.studentLoan)}</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.studentLoan * 12 / 52)}</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.studentLoan * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
-                      <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.studentLoan * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.studentLoan)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.studentLoan * 12 / 52)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.studentLoan * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
+                      {formData.showHourlyColumn && (
+                        <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.studentLoan * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                      )}
                     </tr>
                   )}
                   
                   {/* Take home pay */}
                   <tr className="bg-gradient-to-r from-sunset-start/5 via-sunset-middle/5 to-sunset-end/5 font-medium">
                     <td className="py-3 px-4">Take home pay</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.takeHomePay)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.takeHomePay)}</td>
                     {formData.annualGrossBonus > 0 && (
-                      <td className="text-right py-3 px-4">{formatCurrency(results.bonusMonth.takeHome)}</td>
+                      <td className="text-center py-3 px-4">{formatCurrency(results.bonusMonth.takeHome)}</td>
                     )}
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.takeHome)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.takeHome * 12 / 52)}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.takeHome * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
-                    <td className="text-right py-3 px-4">{formatCurrency(results.regularMonth.takeHome * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.takeHome)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.takeHome * 12 / 52)}</td>
+                    <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.takeHome * 12 / ((formData.workingDaysPerWeek || 5) * 52))}</td>
+                    {formData.showHourlyColumn && (
+                      <td className="text-center py-3 px-4">{formatCurrency(results.regularMonth.takeHome * 12 / ((formData.workingDaysPerWeek || 5) * 52) / (formData.workingHoursPerDay || 7))}</td>
+                    )}
                   </tr>
                   </tbody>
                 </table>

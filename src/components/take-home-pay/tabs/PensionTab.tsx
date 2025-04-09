@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormData, InputFieldState } from '../../../hooks/useTakeHomePay';
 import { Switch } from "@/components/ui/switch";
@@ -142,24 +141,26 @@ const PensionTab: React.FC<PensionTabProps> = ({ formData, inputValues, handleIn
             {` This is a ${formData.pensionFrequency} ${isPensionNominal ? 'amount' : 'rate'}.`}
           </p>
 
-          {/* Include Bonus Checkbox */}
-          <div className="mt-4">
-            <label className="inline-flex items-center">
-              <Checkbox
-                checked={formData.includeBonusPension}
-                onCheckedChange={(checked) => {
-                  handleInputChange({
-                    target: {
-                      name: 'includeBonusPension',
-                      type: 'checkbox',
-                      checked: !!checked
-                    }
-                  } as React.ChangeEvent<HTMLInputElement>);
-                }}
-              />
-              <span className="ml-2 text-sm text-gray-700">Include bonus in pension calculation</span>
-            </label>
-          </div>
+          {/* Include Bonus Checkbox - Only show for percentage-based pensions */}
+          {!isPensionNominal && (
+            <div className="mt-4">
+              <label className="inline-flex items-center">
+                <Checkbox
+                  checked={formData.includeBonusPension}
+                  onCheckedChange={(checked) => {
+                    handleInputChange({
+                      target: {
+                        name: 'includeBonusPension',
+                        type: 'checkbox',
+                        checked: !!checked
+                      }
+                    } as React.ChangeEvent<HTMLInputElement>);
+                  }}
+                />
+                <span className="ml-2 text-sm text-gray-700">Include bonus in pension calculation</span>
+              </label>
+            </div>
+          )}
         </div>
       )}
     </div>

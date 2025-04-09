@@ -68,6 +68,7 @@ export interface PensionDetails {
   type: PensionType;
   value: number;
   valueType: PensionValueType;
+  frequency?: 'monthly' | 'yearly'; // Add frequency to interface
 }
 
 // Calculate salary sacrifice contribution
@@ -75,88 +76,17 @@ export function calculateSalaryContribution(
   grossSalary: number,
   pensionValue: number,
   valueType: PensionValueType,
-  earningsBasis: 'total' | 'qualifying' = 'total'
+  earningsBasis: 'total' | 'qualifying' = 'total',
+  frequency: 'monthly' | 'yearly' = 'monthly'
 ): number {
-  if (earningsBasis === 'total') {
-    return valueType === 'percentage'
-      ? grossSalary * (pensionValue / 100)
-      : pensionValue;
-  } else {
-    if (grossSalary < PENSION_LOWER_THRESHOLD) {
-      return 0;
-    } else if (grossSalary > PENSION_UPPER_THRESHOLD) {
-      const qualifyingEarnings = PENSION_UPPER_THRESHOLD - PENSION_LOWER_THRESHOLD;
-      return valueType === 'percentage'
-        ? qualifyingEarnings * (pensionValue / 100)
-        : pensionValue;
-    } else {
-      const qualifyingEarnings = grossSalary - PENSION_LOWER_THRESHOLD;
-      return valueType === 'percentage'
-        ? qualifyingEarnings * (pensionValue / 100)
-        : pensionValue;
-    }
+  if (valueType === 'nominal') {
+    // For nominal values, handle frequency properly
+    return frequency === 'yearly' 
+      ? pensionValue // Return yearly amount as is
+      : pensionValue * 12; // Convert monthly to yearly
   }
-}
-
-// Calculate auto-enrolment unbanded contribution
-export function calculateAutoUnbandedContribution(
-  grossSalary: number,
-  pensionValue: number,
-  valueType: PensionValueType
-): number {
-  if (valueType === 'percentage') {
-    return grossSalary * (pensionValue / 100);
-  } else {
-    return pensionValue;
-  }
-}
-
-// Calculate relief at source contribution
-export function calculateReliefAtSourceContribution(
-  grossSalary: number,
-  pensionValue: number,
-  valueType: PensionValueType = 'percentage',
-  earningsBasis: 'total' | 'qualifying' = 'total'
-): number {
-  if (earningsBasis === 'total') {
-    return valueType === 'percentage'
-      ? grossSalary * (pensionValue / 100)
-      : pensionValue;
-  } else {
-    if (grossSalary < PENSION_LOWER_THRESHOLD) {
-      return 0;
-    } else if (grossSalary > PENSION_UPPER_THRESHOLD) {
-      const qualifyingEarnings = PENSION_UPPER_THRESHOLD - PENSION_LOWER_THRESHOLD;
-      return valueType === 'percentage'
-        ? qualifyingEarnings * (pensionValue / 100)
-        : pensionValue;
-    } else {
-      const qualifyingEarnings = grossSalary - PENSION_LOWER_THRESHOLD;
-      return valueType === 'percentage'
-        ? qualifyingEarnings * (pensionValue / 100)
-        : pensionValue;
-    }
-  }
-}
-
-// Calculate relief at source unbanded contribution
-export function calculateReliefAtSourceUnbandedContribution(
-  grossSalary: number,
-  pensionValue: number,
-  valueType: PensionValueType
-): number {
-  return valueType === 'percentage'
-    ? grossSalary * (pensionValue / 100)
-    : pensionValue;
-}
-
-// Calculate personal pension contribution
-export function calculatePersonalPensionContribution(
-  grossSalary: number, 
-  pensionValue: number, 
-  valueType: PensionValueType,
-  earningsBasis: 'total' | 'qualifying' = 'total'
-): number {
+  
+  // For percentage values, use existing logic
   if (earningsBasis === 'total') {
     return valueType === 'percentage'
       ? grossSalary * (pensionValue / 100)
@@ -179,7 +109,20 @@ export function calculatePersonalPensionContribution(
 }
 
 // Calculate auto-enrolment pension contribution
-export function calculateAutoEnrolmentContribution(grossSalary: number, pensionValue: number): number {
+export function calculateAutoEnrolmentContribution(
+  grossSalary: number, 
+  pensionValue: number, 
+  valueType: PensionValueType = 'percentage',
+  frequency: 'monthly' | 'yearly' = 'monthly'
+): number {
+  // Handle nominal values with explicit frequency check
+  if (valueType === 'nominal') {
+    // For yearly nominal values, return the exact input value
+    // For monthly nominal values, convert to yearly
+    return frequency === 'yearly' ? pensionValue : pensionValue * 12;
+  }
+  
+  // Original percentage-based calculation
   const monthlyGross = grossSalary / 12;
   const monthlyLowerThreshold = PENSION_LOWER_THRESHOLD / 12;
   const monthlyUpperThreshold = PENSION_UPPER_THRESHOLD / 12;
@@ -190,6 +133,98 @@ export function calculateAutoEnrolmentContribution(grossSalary: number, pensionV
     return (monthlyUpperThreshold - monthlyLowerThreshold) * (pensionValue / 100) * 12;
   } else {
     return (monthlyGross - monthlyLowerThreshold) * (pensionValue / 100) * 12;
+  }
+}
+
+// Calculate auto-enrolment unbanded contribution
+export function calculateAutoUnbandedContribution(
+  grossSalary: number,
+  pensionValue: number,
+  valueType: PensionValueType,
+  frequency: 'monthly' | 'yearly' = 'monthly'
+): number {
+  if (valueType === 'percentage') {
+    return grossSalary * (pensionValue / 100);
+  } else {
+    // Handle frequency for nominal values
+    return frequency === 'yearly' ? pensionValue : pensionValue * 12;
+  }
+}
+
+// Calculate relief at source contribution
+export function calculateReliefAtSourceContribution(
+  grossSalary: number,
+  pensionValue: number,
+  valueType: PensionValueType = 'percentage',
+  earningsBasis: 'total' | 'qualifying' = 'total',
+  frequency: 'monthly' | 'yearly' = 'monthly'
+): number {
+  if (valueType === 'nominal') {
+    // For nominal values, handle frequency properly
+    return frequency === 'yearly' 
+      ? pensionValue // Return yearly amount as is
+      : pensionValue * 12; // Convert monthly to yearly
+  }
+  
+  // For percentage values, use existing logic
+  if (earningsBasis === 'total') {
+    return grossSalary * (pensionValue / 100);
+  } else {
+    if (grossSalary < PENSION_LOWER_THRESHOLD) {
+      return 0;
+    } else if (grossSalary > PENSION_UPPER_THRESHOLD) {
+      const qualifyingEarnings = PENSION_UPPER_THRESHOLD - PENSION_LOWER_THRESHOLD;
+      return qualifyingEarnings * (pensionValue / 100);
+    } else {
+      const qualifyingEarnings = grossSalary - PENSION_LOWER_THRESHOLD;
+      return qualifyingEarnings * (pensionValue / 100);
+    }
+  }
+}
+
+// Calculate relief at source unbanded contribution
+export function calculateReliefAtSourceUnbandedContribution(
+  grossSalary: number,
+  pensionValue: number,
+  valueType: PensionValueType,
+  frequency: 'monthly' | 'yearly' = 'monthly'
+): number {
+  if (valueType === 'percentage') {
+    return grossSalary * (pensionValue / 100);
+  } else {
+    // Handle frequency for nominal values
+    return frequency === 'yearly' ? pensionValue : pensionValue * 12;
+  }
+}
+
+// Calculate personal pension contribution
+export function calculatePersonalPensionContribution(
+  grossSalary: number, 
+  pensionValue: number, 
+  valueType: PensionValueType,
+  earningsBasis: 'total' | 'qualifying' = 'total',
+  frequency: 'monthly' | 'yearly' = 'monthly'
+): number {
+  if (valueType === 'nominal') {
+    // For nominal values, handle frequency properly
+    return frequency === 'yearly' 
+      ? pensionValue // Return yearly amount as is
+      : pensionValue * 12; // Convert monthly to yearly
+  }
+  
+  // For percentage values, use existing logic
+  if (earningsBasis === 'total') {
+    return grossSalary * (pensionValue / 100);
+  } else {
+    if (grossSalary < PENSION_LOWER_THRESHOLD) {
+      return 0;
+    } else if (grossSalary > PENSION_UPPER_THRESHOLD) {
+      const qualifyingEarnings = PENSION_UPPER_THRESHOLD - PENSION_LOWER_THRESHOLD;
+      return qualifyingEarnings * (pensionValue / 100);
+    } else {
+      const qualifyingEarnings = grossSalary - PENSION_LOWER_THRESHOLD;
+      return qualifyingEarnings * (pensionValue / 100);
+    }
   }
 }
 
@@ -236,29 +271,48 @@ export function calculatePensionContribution(
     return 0;
   }
 
+  // Get frequency directly from the pension object
+  const frequency = pension.frequency || 'monthly';
+  
   switch (pension.type) {
+    // Make sure to pass the frequency to all contribution functions
     case 'auto_enrolment':
-      return calculateAutoEnrolmentContribution(grossSalary, pension.value);
+      return calculateAutoEnrolmentContribution(
+        grossSalary, 
+        pension.value, 
+        pension.valueType, 
+        frequency
+      );
+    case 'auto_unbanded':
+      return calculateAutoUnbandedContribution(
+        grossSalary, 
+        pension.value, 
+        pension.valueType, 
+        frequency
+      );
     case 'relief_at_source':
       return calculateReliefAtSourceContribution(
         grossSalary,
         pension.value,
         pension.valueType,
-        pension.earningsBasis
+        pension.earningsBasis,
+        frequency
       );
     case 'salary_sacrifice':
       return calculateSalaryContribution(
         grossSalary,
         pension.value,
         pension.valueType,
-        pension.earningsBasis
+        pension.earningsBasis,
+        frequency
       );
     case 'personal':
       return calculatePersonalPensionContribution(
         grossSalary,
         pension.value,
         pension.valueType,
-        pension.earningsBasis
+        pension.earningsBasis,
+        frequency
       );
     default:
       return 0;
