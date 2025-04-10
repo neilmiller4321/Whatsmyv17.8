@@ -1,8 +1,8 @@
-
 import { useEffect } from 'react';
-import { PoundSterling, ArrowRight, LineChart } from 'lucide-react';
+import { PoundSterling } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTakeHomePay } from '../hooks/useTakeHomePay';
+import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import TakeHomePayForm from '../components/take-home-pay/TakeHomePayForm';
 import TakeHomePayResults from '../components/take-home-pay/TakeHomePayResults';
 import TakeHomePayInfo from '../components/take-home-pay/TakeHomePayInfo';
@@ -65,6 +65,12 @@ export default function TakeHomePay() {
       });
     }
   }, []);
+
+  // Use our custom keyboard shortcut hook to trigger calculation on Enter key
+  // Set triggerOnFormElements to true to always trigger, even when typing in inputs
+  useKeyboardShortcut('Enter', calculateTakeHome, { 
+    triggerOnFormElements: true 
+  });
 
   return (
     <main className="pt-24 px-4 pb-12">

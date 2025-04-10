@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { AffordabilityForm } from '../components/mortgage/AffordabilityForm';
 import { AffordabilityResults } from '../components/mortgage/AffordabilityResults';
 import { calculateMortgageAffordability } from '../utils/mortgageAffordabilityCalculator';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 interface FormData {
   applicant1Salary: number;
@@ -196,6 +197,14 @@ export function MortgageAffordability() {
     }
   };
 
+  // Add keyboard shortcut for calculation
+  useKeyboardShortcut('Enter', () => {
+    calculateAffordability();
+  }, { 
+    triggerOnFormElements: false, 
+    preventDefault: true 
+  });
+
   return (
     <main className="pt-24 px-4 pb-12">
       <div className="max-w-5xl mx-auto">
@@ -287,7 +296,7 @@ export function MortgageAffordability() {
               <li>A lower score? You might still qualify, but the terms might not be as favorable. Not sure where you stand? Checking your credit report before applying is a smart move—it gives you time to tidy things up if needed.</li>
             </ul>
 
-            <h4 className="text-lg font-semibold mt-6 mb-3">4. Existing Debts – What's Already on Your Plate?</h4>
+            <h4 className="text-lg font-semibold mt-6 mb-3">4. Existing Debts �� What's Already on Your Plate?</h4>
             <p className="text-gray-700">
               Lenders don't just care about what you earn—they also look at what you owe. Things like car loans, credit card balances, or student debt can shrink the amount they're willing to lend. The less you're juggling, the better your chances of a bigger mortgage.
             </p>

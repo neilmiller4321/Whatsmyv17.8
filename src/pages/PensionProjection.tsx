@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { LineChart } from 'lucide-react';
 import { PensionChart } from '../components/pension/PensionChart';
@@ -7,6 +6,7 @@ import { ProjectionSummary } from '../components/pension/ProjectionSummary';
 import { PensionForm } from '../components/pension/PensionForm';
 import { EducationalContent } from '../components/pension/EducationalContent';
 import { calculatePensionProjection } from '../utils/pensionCalculator';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import type { 
   PersonalInfo,
   AssetAllocation,
@@ -121,6 +121,14 @@ function PensionProjection() {
       setIsCalculating(false);
     }, 300);
   };
+
+  // Add keyboard shortcut for calculation
+  useKeyboardShortcut('Enter', () => {
+    calculateProjection();
+  }, { 
+    triggerOnFormElements: false, 
+    preventDefault: true 
+  });
 
   const yearlyDetailsForSelectedYear = (() => {
     const yearIndex = selectedYear - personalInfo.currentAge;

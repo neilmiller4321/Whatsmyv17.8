@@ -6,6 +6,7 @@ import { RepaymentInfo } from '../components/student-loan/RepaymentInfo';
 import { LoanCalculatorForm } from '../components/student-loan/LoanCalculatorForm';
 import { LoanResults } from '../components/student-loan/LoanResults';
 import { repaymentPlans, calculatePlan2InterestRate } from '@/constants/studentLoanPlans';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 // Repayment Plan Types
 type RepaymentPlan = keyof typeof repaymentPlans;
@@ -87,6 +88,14 @@ export function StudentLoanCalculator() {
   useEffect(() => {
     // Remove automatic calculation
   }, []);
+
+  // Add keyboard shortcut for calculation
+  useKeyboardShortcut('Enter', () => {
+    calculateRepayment();
+  }, { 
+    triggerOnFormElements: false, 
+    preventDefault: true 
+  });
 
   // Format a number with commas as thousands separators
   const formatNumberWithCommas = (value: number | string): string => {

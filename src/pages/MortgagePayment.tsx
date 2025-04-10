@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Home } from 'lucide-react';
 import { MortgageAmortizationChart } from '../components/mortgage/MortgageAmortizationChart';
@@ -15,6 +14,7 @@ import { ResultsPanel } from '../components/mortgagepayment/ResultsPanel';
 import { InterestOnlySummary } from '../components/mortgagepayment/InterestOnlySummary';
 import { MobileOverpaymentSummary } from '../components/mortgagepayment/MobileOverpaymentSummary';
 import { EducationalContent } from '../components/mortgagepayment/EducationalContent';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 interface MortgageFormData {
   homePrice: number;
@@ -477,6 +477,14 @@ export function MortgagePayment() {
       }
     }, 300);
   };
+
+  // Add keyboard shortcut for calculation
+  useKeyboardShortcut('Enter', () => {
+    calculateMortgage();
+  }, { 
+    triggerOnFormElements: false, 
+    preventDefault: true 
+  });
 
   return (
     <main className="pt-24 px-4 pb-12">

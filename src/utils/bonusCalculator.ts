@@ -231,48 +231,35 @@ export function calculateBonusMonth(inputs: BonusCalculationInputs): BonusMonthR
     const rate = rateMap[forcedRate] ?? 0.2;
     bonusMonthTax = bonusMonthTaxableIncome * rate;
   } else {
-    const regularAnnualGross = inputs.regularMonthlyGross * 12;
-    const adjustedRegularIncome = isSalarySacrifice
-      ? regularAnnualGross - (bonusMonthPensionContribution * 12) // note: even if bonus excluded, affects gross
-      : isAutoEnrollment
-        ? regularAnnualGross - (bonusMonthPensionContribution * 12) // Auto enrollment reduces taxable income
-        : regularAnnualGross;
+    // Calculate adjusted annual salaries
+const regularAnnualGross = inputs.regularMonthlyGross * 12;
+const adjustedRegularIncome = isSalarySacrifice
+  ? regularAnnualGross - (bonusMonthPensionContribution * 12) // Salary sacrifice reduces total income
+  : isAutoEnrollment
+    ? regularAnnualGross - (bonusMonthPensionContribution * 12) // Auto-enrolment reduces taxable income
+    : regularAnnualGross;
 
-    const adjustedBonusIncome = isSalarySacrifice
-      ? annualisedIncomeWithBonus - (bonusMonthPensionContribution * 12)
-      : isAutoEnrollment
-        ? annualisedIncomeWithBonus - (bonusMonthPensionContribution * 12) // Auto enrollment reduces taxable income
-        : annualisedIncomeWithBonus;
+const adjustedBonusIncome = isSalarySacrifice
+  ? annualisedIncomeWithBonus - (bonusMonthPensionContribution * 12)
+  : isAutoEnrollment
+    ? annualisedIncomeWithBonus - (bonusMonthPensionContribution * 12)
+    : annualisedIncomeWithBonus;
 
-    const regularAnnualTax = inputs.residentInScotland
-      ? calculateScottishTax(adjustedRegularIncome).tax
-      : calculateTax(adjustedRegularIncome).tax;
+// Calculate regular annual tax using the appropriate tax function
+  const regularAnnualTax = inputs.residentInScotland
+    ? calculateScottishTax(adjustedRegularIncome, undefined, taxYear).tax
+    : calculateTax(adjustedRegularIncome, undefined, taxYear).tax;
 
-    const totalAnnualTax = inputs.residentInScotland
-      ? calculateScottishTax(adjustedBonusIncome).tax
-      : calculateTax(adjustedBonusIncome).tax;
+// Calculate total annual tax with bonus included
+  const totalAnnualTax = inputs.residentInScotland
+    ? calculateScottishTax(adjustedBonusIncome, undefined, taxYear).tax
+    : calculateTax(adjustedBonusIncome, undefined, taxYear).tax;
 
-    bonusMonthTax = (totalAnnualTax - regularAnnualTax) + (regularAnnualTax / 12);
+// Derive the bonus month tax by subtracting 11 months of regular tax from the annual tax
+bonusMonthTax = Math.floor((totalAnnualTax - (regularAnnualTax * 11 / 12)) * 100) / 100;
 
-    // Apply tapering reduction ONLY if personal allowance is being used
-    let additionalTax = 0;
-    const adjustedAnnualIncome = isSalarySacrifice
-      ? annualisedIncomeWithBonus - (bonusMonthPensionContribution * 12)
-      : isAutoEnrollment
-        ? annualisedIncomeWithBonus - (bonusMonthPensionContribution * 12) // Auto enrollment reduces taxable income
-        : annualisedIncomeWithBonus;
 
-    if (usePersonalAllowance && adjustedAnnualIncome > 100000) {
-      const personalAllowanceReduction = Math.min(
-        12570,
-        Math.max(0, (adjustedAnnualIncome - 100000) / 2)
-      );
-      additionalTax = inputs.residentInScotland
-        ? (personalAllowanceReduction * SCOTTISH_HIGHER_RATE) / 12
-        : (personalAllowanceReduction * HIGHER_RATE) / 12;
-    }
-
-    bonusMonthTax += additionalTax;
+    
   }
 
   // For NI calculation, use the adjustedBonusMonthGross (which is reduced for salary sacrifice only)

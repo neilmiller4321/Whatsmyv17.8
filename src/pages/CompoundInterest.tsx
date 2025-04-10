@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Percent } from 'lucide-react';
 import { 
@@ -12,6 +11,7 @@ import { ResultsSummary } from '../components/compound-interest/ResultsSummary';
 import { CompoundGrowthChart } from '../components/compound-interest/CompoundGrowthChart';
 import { YearlyBreakdown } from '../components/compound-interest/YearlyBreakdown';
 import { EducationalContent } from '../components/compound-interest/EducationalContent';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 export function CompoundInterest() {
   const [calculationMode, setCalculationMode] = useState<'balance' | 'target'>('balance');
@@ -61,6 +61,14 @@ export function CompoundInterest() {
       }
     }, 300);
   };
+
+  // Add keyboard shortcut for calculation
+  useKeyboardShortcut('Enter', () => {
+    calculateResults();
+  }, { 
+    triggerOnFormElements: false, 
+    preventDefault: true 
+  });
 
   return (
     <main className="pt-24 px-4 pb-12">

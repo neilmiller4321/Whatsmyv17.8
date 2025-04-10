@@ -4,6 +4,7 @@ import { Calculator, PoundSterling, Car, CreditCard, HelpCircle, LineChart } fro
 import { Link } from "react-router-dom";
 import CarFinanceInfo from "@/components/car-finance/CarFinanceInfo";
 import { formatNumberWithCommas, parseFormattedNumber, calculateCursorPosition } from "@/lib/formatters";
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -68,6 +69,14 @@ const CarFinanceCalculator = () => {
       });
     }
   }, [carValue, deposit, term, pcpApr, hpApr, useCustomRates, toast]);
+
+  // Add keyboard shortcut for calculation
+  useKeyboardShortcut('Enter', () => {
+    calculateResults();
+  }, { 
+    triggerOnFormElements: false, 
+    preventDefault: true 
+  });
 
   return (
     <main className="pt-24 px-4 pb-12">

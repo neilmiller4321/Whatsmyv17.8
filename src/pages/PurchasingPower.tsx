@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { PoundSterling } from 'lucide-react';
 import { PurchasingPowerChart } from '../components/purchasing-power/PurchasingPowerChart';
@@ -7,6 +6,7 @@ import { PurchasingPowerForm } from '../components/purchasing-power/PurchasingPo
 import { PurchasingPowerResults } from '../components/purchasing-power/PurchasingPowerResults';
 import { EducationalContent } from '../components/purchasing-power/EducationalContent';
 import { useInflationCalculator } from '../components/purchasing-power/InflationCalculator';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 interface FormData {
   amount: number;
@@ -56,6 +56,14 @@ function PurchasingPower() {
   const handleCalculate = () => {
     calculatePurchasingPower(formData);
   };
+
+  // Add keyboard shortcut for calculation
+  useKeyboardShortcut('Enter', () => {
+    handleCalculate();
+  }, { 
+    triggerOnFormElements: false, 
+    preventDefault: true 
+  });
 
   return (
     <main className="pt-24 px-4 pb-12">
