@@ -324,21 +324,49 @@ export function calculateTaxes(inputs: TaxInputs) {
   const personalAllowanceWithBonus = usePersonalAllowance
     ? (taxCodeSettings?.numericAllowance !== undefined 
        ? taxCodeSettings.numericAllowance 
-       : calculatePersonalAllowance(adjustedGrossIncome)) + marriageAllowanceAdjustment + (inputs.blind ? taxConstants.BLIND_PERSONS_ALLOWANCE : 0)
+       : calculatePersonalAllowance(adjustPensionForPA(adjustedGrossIncome, inputs.pension))) + marriageAllowanceAdjustment + (inputs.blind ? taxConstants.BLIND_PERSONS_ALLOWANCE : 0)
     : 0;
 
   const personalAllowanceWithoutBonus = usePersonalAllowance
   ? (
       (taxCodeSettings?.numericAllowance !== undefined 
         ? taxCodeSettings.numericAllowance 
-        : calculatePersonalAllowance(inputs.annualGrossSalary)) + 
+        : calculatePersonalAllowance(adjustPensionForPA(inputs.annualGrossSalary, inputs.pension))) + 
       marriageAllowanceAdjustment + 
       (inputs.blind ? taxConstants.BLIND_PERSONS_ALLOWANCE : 0)
     )
   : 0;
 
+  // Helper function to adjust income for personal allowance calculation based on pension
+  function adjustPensionForPA(income: number, pension?: TaxInputs['pension']): number {
+    if (!pension || pension.value <= 0) return income;
+    
+    // For salary sacrifice, reduce the income directly
+    if (pension.type === 'salary_sacrifice') {
+      return income - calculateSalaryContribution(
+        income,
+        pension.value,
+        pension.valueType,
+        pension.earningsBasis,
+        pension.frequency
+      );
+    }
+    
+    // For auto enrollment types, also reduce the income
+    if (['auto_enrolment', 'auto_unbanded'].includes(pension.type)) {
+      return income - calculatePensionContribution(income, {
+        type: pension.type,
+        value: pension.value,
+        valueType: pension.valueType,
+        earningsBasis: pension.earningsBasis,
+        frequency: pension.frequency
+      });
+    }
+    
+    // For relief at source, do not reduce income for PA calculation
+    return income;
+  }
 
-  // Monthly calculations
   const regularMonthlyGross = inputs.annualGrossSalary / 12;
   const regularMonthlyStudentLoan = calculateTotalStudentLoans(inputs.annualGrossSalary, inputs.studentLoan, taxYear).monthlyRepayment;
   let regularMonthlyPensionContribution = 0;
@@ -635,8 +663,10 @@ export function calculateTaxes(inputs: TaxInputs) {
   // Calculate annual values including bonus
   // For auto enrollment, reduce taxable income but not NI-eligible income
   const isAutoEnrollment = ['auto_enrolment', 'auto_unbanded'].includes(inputs.pension?.type || '');
-  const pensionDeduction = isAutoEnrollment ? pensionContribution : 0;
-  const annualTaxableIncome = Math.max(0, adjustedGrossIncome - personalAllowance - pensionDeduction);
+  
+  // For auto enrollment, always deduct the pension contribution
+  const annualTaxableIncome = Math.max(0, adjustedGrossIncome - personalAllowanceWithBonus - 
+    (isAutoEnrollment ? pensionContribution : 0));
   
   // Calculate take-home pay
   const takeHomePay = annualGrossIncome - combinedTaxes - pensionContribution;
