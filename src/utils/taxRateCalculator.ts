@@ -23,7 +23,12 @@ export function calculatePersonalAllowance(income: number, taxYear: string = '20
   if (income <= constants.ALLOWANCE_LOSS_THRESHOLD) {
     return constants.PERSONAL_ALLOWANCE;
   } else if (income <= constants.ALLOWANCE_LOSS_LIMIT) {
-    return constants.PERSONAL_ALLOWANCE - ((income - constants.ALLOWANCE_LOSS_THRESHOLD) / 2);
+    // Fix the calculation to ensure proper rounding for the exact reduction amount
+    // For £101,000, the reduction should be exactly £500
+    const amountOver = income - constants.ALLOWANCE_LOSS_THRESHOLD;
+    const reduction = Math.floor(amountOver / 2);
+    
+    return Math.max(0, constants.PERSONAL_ALLOWANCE - reduction);
   } else {
     return 0;
   }

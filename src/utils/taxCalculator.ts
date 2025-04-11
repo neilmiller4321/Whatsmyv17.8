@@ -460,6 +460,25 @@ export function calculateTaxes(inputs: TaxInputs) {
   let initialTax = 0;
   let initialBreakdown: TaxBreakdown = {};
 
+  // Calculate annual values including bonus - MOVE THIS SECTION UP
+  const isAutoEnrollment = ['auto_enrolment', 'auto_unbanded'].includes(inputs.pension?.type || '');
+  const isSalarySacrifice = inputs.pension?.type === 'salary_sacrifice';
+  
+  // Fix calculation - ensure we deduct pension only ONCE for auto enrollment
+  // For salary sacrifice, the income is already reduced
+  // For auto enrollment, we need to reduce it here but NOT again later
+  const grossIncomeAfterPension = annualGrossIncome - 
+    (isSalarySacrifice || isAutoEnrollment ? pensionContribution : 0);
+  
+  // Calculate the correct personal allowance for high earners
+  // For salary sacrifice pensions where income > £100k
+  const personalAllowanceForTaxable = usePersonalAllowance
+    ? (taxCodeSettings?.numericAllowance !== undefined 
+       ? taxCodeSettings.numericAllowance 
+       : calculatePersonalAllowance(grossIncomeAfterPension, taxYear)) + 
+         marriageAllowanceAdjustment + (inputs.blind ? taxConstants.BLIND_PERSONS_ALLOWANCE : 0)
+    : 0;
+
   if (noTax) {
     initialTax = 0;
     initialBreakdown = { 'No Tax (NT Code)': 0 };
@@ -481,7 +500,7 @@ export function calculateTaxes(inputs: TaxInputs) {
     initialBreakdown = { [`${forcedRate.replace('_', ' ').toUpperCase()} (Tax Code Override)`]: initialTax };
   } else {
     // For auto enrollment and relief at source, reduce taxable income but not NI-eligible income
-    const isAutoEnrollment = ['auto_enrolment', 'auto_unbanded'].includes(inputs.pension?.type || '');
+    // Note: We're now using variables that were defined above
     const isReliefAtSource = ['relief_at_source', 'relief_at_source_unbanded'].includes(inputs.pension?.type || '');
     
     // Calculate tax deduction based on pension type
@@ -494,15 +513,16 @@ export function calculateTaxes(inputs: TaxInputs) {
       // Relief at source gets tax relief differently (via HMRC adding basic rate tax relief)
       // So we don't reduce the taxable income for this calculation
       taxableIncomeAdjustment = 0;
-    } else if (inputs.pension?.type === 'salary_sacrifice') {
+    } else if (isSalarySacrifice) {
       // Salary sacrifice already affected the adjustedGrossIncome, so no additional adjustment needed
       taxableIncomeAdjustment = 0;
     }
     
-    // Calculate tax on the properly adjusted income
+    // Use personalAllowanceForTaxable which is already calculated above
+    // Calculate tax on the properly adjusted income with the correct personal allowance
     const result = isScottish
-      ? calculateScottishTax(adjustedGrossIncome - taxableIncomeAdjustment, personalAllowanceWithBonus, taxYear)
-      : calculateTax(adjustedGrossIncome - taxableIncomeAdjustment, personalAllowanceWithBonus);
+      ? calculateScottishTax(adjustedGrossIncome - taxableIncomeAdjustment, personalAllowanceForTaxable, taxYear)
+      : calculateTax(adjustedGrossIncome - taxableIncomeAdjustment, personalAllowanceForTaxable);
 
     initialTax = result.tax;
     initialBreakdown = result.breakdown;
@@ -660,14 +680,9 @@ export function calculateTaxes(inputs: TaxInputs) {
   // Calculate total deductions using corrected student loan amount
   const combinedTaxes = annualTax + employeeNI + annualStudentLoan;
   
-  // Calculate annual values including bonus
-  // For auto enrollment, reduce taxable income but not NI-eligible income
-  const isAutoEnrollment = ['auto_enrolment', 'auto_unbanded'].includes(inputs.pension?.type || '');
-  
-  // For auto enrollment, always deduct the pension contribution
-  const annualTaxableIncome = Math.max(0, adjustedGrossIncome - personalAllowanceWithBonus - 
-    (isAutoEnrollment ? pensionContribution : 0));
-  
+  // Don't subtract pension again for auto enrollment since we already did it above
+  const annualTaxableIncome = Math.max(0, grossIncomeAfterPension - personalAllowanceForTaxable);
+
   // Calculate take-home pay
   const takeHomePay = annualGrossIncome - combinedTaxes - pensionContribution;
   
@@ -686,13 +701,13 @@ export function calculateTaxes(inputs: TaxInputs) {
       ]
     },
     taxAllowance: {
-      total: personalAllowanceWithBonus,
+      total: personalAllowanceForTaxable, // Use the correct personal allowance
       breakdown: [
-        { rate: "Personal Allowance", amount: personalAllowanceWithBonus - (inputs.blind ? taxConstants.BLIND_PERSONS_ALLOWANCE : 0) },
+        { rate: "Personal Allowance", amount: personalAllowanceForTaxable - (inputs.blind ? taxConstants.BLIND_PERSONS_ALLOWANCE : 0) },
         ...(inputs.blind ? [{ rate: "Blind Person's Allowance", amount: taxConstants.BLIND_PERSONS_ALLOWANCE }] : [])
       ]
     },
-    taxableIncome: annualTaxableIncome,
+    taxableIncome: annualTaxableIncome, // Use our corrected value
     incomeTax: {
       total: annualTax,
       breakdown: Object.entries(initialBreakdown).map(([rate, amount]) => ({

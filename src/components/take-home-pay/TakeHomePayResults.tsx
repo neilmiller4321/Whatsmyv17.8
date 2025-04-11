@@ -147,14 +147,28 @@ const TakeHomePayResults: React.FC<TakeHomePayResultsProps> = ({
                     )}
                   </tr>
                   
-                  {/* Personal Allowance - Only show if gross salary > 100,000 */}
-                  {results.annualGrossIncome.total > 100000 && (
+                  {/* Personal Allowance - Enhanced display logic */}
+                  {/* Show if income before pension adjustments > 100,000 OR if personal allowance is tapered */}
+                  {(results.annualGrossIncome.total > 100000 || 
+                    (results.taxAllowance.total < 12570 && results.taxAllowance.total > 0)) && (
                     <tr className="hover:bg-gray-50">
-                      <td className="py-3 px-4">Personal allowance</td>
+                      <td className="py-3 px-4">
+                        Personal allowance
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="ml-2 text-gray-400 hover:text-sunset-text transition-colors">
+                              <HelpCircle className="w-4 h-4" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-4 text-sm bg-orange-50 shadow-lg rounded-lg border border-gray-200">
+                            <p>Personal allowance is reduced by £1 for every £2 of income above £100,000 after pension contributions.</p>
+                          </PopoverContent>
+                        </Popover>
+                      </td>
                       <td className="text-center py-3 px-4">{formatCurrency(results.taxAllowance.total)}</td>
                       {formData.annualGrossBonus > 0 && (
                         <td className="text-center py-3 px-4">
-                          {formatCurrency(results.bonusMonth.personalAllowance)}
+                          {formatCurrency(results.bonusMonth.personalAllowance / 12)}
                         </td>
                       )}
                       <td className="text-center py-3 px-4">{formatCurrency(results.taxAllowance.total / 12)}</td>
@@ -186,7 +200,9 @@ const TakeHomePayResults: React.FC<TakeHomePayResultsProps> = ({
                   {/* Taxable Income */}
                   <tr className="bg-gray-50/50 hover:bg-gray-50">
                     <td className="py-3 px-4">Taxable income</td>
-                    <td className="text-center py-3 px-4">{formatCurrency(results.taxableIncome)}</td>
+                    <td className="text-center py-3 px-4">
+                      {formatCurrency(results.taxableIncome)}
+                    </td>
                     {formData.annualGrossBonus > 0 && (
                       <td className="text-center py-3 px-4">{formatCurrency(results.bonusMonth.taxableIncome)}</td>
                     )}
@@ -221,12 +237,38 @@ const TakeHomePayResults: React.FC<TakeHomePayResultsProps> = ({
                             </button>
                           </div>
                           <div className="p-4">
-                          {results.incomeTax.breakdown.map(({ rate, amount }) => (
-                            <div key={rate} className="flex justify-between text-sm mb-1">
-                              <span>{rate}:</span>
-                              <span>{formatCurrency(amount)}</span>
-                            </div>
-                          ))}
+                            {formData.residentInScotland && results.annualGrossIncome.total > 100000 && results.taxAllowance.total < 12570 ? (
+                              // For Scottish taxpayers with personal allowance taper
+                              results.incomeTax.breakdown.map(({ rate, amount }) => {
+                                if (rate === "Advanced Rate" && results.taxAllowance.total < 12570) {
+                                  // Calculate the additional tax due to personal allowance taper
+                                  const personalAllowanceReduction = 12570 - results.taxAllowance.total;
+                                  // This is the amount taxed at advanced rate (45%) due to reduced allowance
+                                  const additionalAdvancedRateTax = personalAllowanceReduction * 0.45;
+                                  // Add this amount to the displayed advanced rate
+                                  return (
+                                    <div key={rate} className="flex justify-between text-sm mb-1">
+                                      <span>{rate}:</span>
+                                      <span>{formatCurrency(amount + additionalAdvancedRateTax)}</span>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div key={rate} className="flex justify-between text-sm mb-1">
+                                    <span>{rate}:</span>
+                                    <span>{formatCurrency(amount)}</span>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              // For all other taxpayers, show normal breakdown
+                              results.incomeTax.breakdown.map(({ rate, amount }) => (
+                                <div key={rate} className="flex justify-between text-sm mb-1">
+                                  <span>{rate}:</span>
+                                  <span>{formatCurrency(amount)}</span>
+                                </div>
+                              ))
+                            )}
                           </div>
                         </div>
                       )}

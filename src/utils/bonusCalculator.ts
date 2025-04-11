@@ -10,7 +10,8 @@ import {
 import * as taxConstants24 from './taxConstants';
 import * as taxConstants25 from './taxConstants25';
 
-import { calculateScottishTax, calculateTax, calculatePersonalAllowance } from './taxCalculator';
+// Import directly from taxRateCalculator instead of taxCalculator to avoid circular references
+import { calculateScottishTax, calculateTax, calculatePersonalAllowance } from './taxRateCalculator';
 import { calculateTotalStudentLoans } from './studentLoanCalculator';
 import type { TaxCodeSettings } from './taxCodes';
 
@@ -92,6 +93,7 @@ interface BonusMonthResult {
   pensionContribution: number;
   takeHome: number;
   personalAllowance: number; // Add this line
+  annualTaxable: number; // Add this line
 }
 
 // Calculate monthly NI for bonus month
@@ -108,6 +110,29 @@ function calculateBonusMonthNI(monthlySalary: number, taxYear: string = '2024/25
   ) * 100) / 100;
 }
 
+// Helper function to adjust income for personal allowance calculation based on pension
+function adjustPensionForPA(income: number, pension?: {
+  type: string;
+  value: number;
+  valueType: string;
+  frequency?: 'monthly' | 'yearly';
+  earningsBasis?: 'total' | 'qualifying';
+}, bonusMonthPensionContribution?: number): number {
+  if (!pension || pension.value <= 0) return income;
+  
+  // For salary sacrifice, reduce the income directly
+  if (pension.type === 'salary_sacrifice') {
+    return income - (bonusMonthPensionContribution * 12);
+  }
+  
+  // For auto enrollment, reduce the income for PA calculation
+  if (['auto_enrolment', 'auto_unbanded'].includes(pension.type)) {
+    return income - (bonusMonthPensionContribution * 12);
+  }
+  
+  return income;
+}
+
 export function calculateBonusMonth(inputs: BonusCalculationInputs): BonusMonthResult {
   const taxYear = inputs.taxYear || '2024/25';
   const constants = getTaxConstants(taxYear);
@@ -115,6 +140,10 @@ export function calculateBonusMonth(inputs: BonusCalculationInputs): BonusMonthR
   const bonusMonthGross = inputs.regularMonthlyGross + inputs.bonusAmount;
   const annualisedIncomeWithoutBonus = inputs.regularMonthlyGross * 12;
   const annualisedIncomeWithBonus = annualisedIncomeWithoutBonus + inputs.bonusAmount;
+
+  // Define these variables first, before they're used
+  const isSalarySacrifice = inputs.pension?.type === 'salary_sacrifice';
+  const isAutoEnrollment = ['auto_enrolment', 'auto_unbanded'].includes(inputs.pension?.type || '');
 
   let bonusMonthPensionContribution = inputs.pensionContribution;
   
@@ -174,24 +203,47 @@ export function calculateBonusMonth(inputs: BonusCalculationInputs): BonusMonthR
 
   // 1. Annualise the gross for bonus month (HMRC method)
   const annualisedBonusMonthIncome = bonusMonthGross * 12;
+  
+  // For both salary sacrifice and auto-enrollment, we need to reduce the income by 
+  // pension contributions when calculating personal allowance for high earners (>£100k)
+  
+  // Calculate annual pension contribution correctly
+  const annualPensionContribution = (() => {
+    if (!inputs.pension || inputs.pension.value <= 0) return 0;
+    
+    // For percentage-based pensions, calculate the amount directly
+    if (inputs.pension.valueType === 'percentage') {
+      const rate = inputs.pension.value / 100;
+      const baseAmount = inputs.pension.includeBonusPension 
+        ? annualisedIncomeWithBonus  // Include bonus in the calculation
+        : annualisedIncomeWithoutBonus;  // Just the regular salary
+      return baseAmount * rate;
+    }
+    
+    // For nominal values, ensure we're using the correct annual amount
+    if (inputs.pension.valueType === 'nominal') {
+      const frequency = inputs.pension.frequency || 'monthly';
+      return frequency === 'yearly' 
+        ? inputs.pension.value  // Already an annual amount
+        : inputs.pension.value * 12;  // Convert monthly to annual
+    }
+    
+    // Fallback to the input pension contribution
+    return bonusMonthPensionContribution * 12;
+  })();
+  
+  // Now calculate the adjusted income for personal allowance correctly
+  const adjustedIncomeForPA = (isSalarySacrifice || isAutoEnrollment) && inputs.pension
+    ? annualisedIncomeWithBonus - annualPensionContribution
+    : annualisedIncomeWithBonus;
 
-// 2. Calculate personal allowance based on annualised bonus month income
+  // Make sure the correct value is being used in our calculation
   const personalAllowance = usePersonalAllowance
-    ? calculatePersonalAllowance(annualisedBonusMonthIncome)
+    ? calculatePersonalAllowance(adjustedIncomeForPA, taxYear)
     : 0;
 
-// 3. Monthly equivalent for tax calc
+  // 3. Monthly equivalent for tax calc - divide by 12 to get monthly allowance
   const monthlyAllowance = personalAllowance / 12;
-
-  // Debug log
-  console.log('Annual income without bonus:', annualisedIncomeWithoutBonus);
-  console.log('Annual income with bonus:', annualisedIncomeWithBonus);
-  console.log('Base personal allowance:', 12570);
-  console.log('Calculated bonus month allowance:', personalAllowance);
-  console.log('Monthly allowance for bonus month:', monthlyAllowance);
-
-  const isSalarySacrifice = inputs.pension?.type === 'salary_sacrifice';
-  const isAutoEnrollment = ['auto_enrolment', 'auto_unbanded'].includes(inputs.pension?.type || '');
 
   // Calculate adjusted gross for tax and NI purposes separately
   let adjustedBonusMonthGross = bonusMonthGross;
@@ -207,16 +259,43 @@ export function calculateBonusMonth(inputs: BonusCalculationInputs): BonusMonthR
     taxableAdjustment = bonusMonthPensionContribution;
   }
 
-  // Calculate taxable income for the bonus month
-  // For high earners, this should correctly reflect the reduced personal allowance
+  // For the personal allowance calculation for high earners, we need to ensure
+  // both salary sacrifice AND auto enrollment reduce the income before annualizing
+  const bonusMonthAnnualizedIncome = (() => {
+    // For salary sacrifice, the gross already accounts for pension reduction
+    if (isSalarySacrifice) {
+      return adjustedBonusMonthGross * 12;
+    } 
+    // For auto enrollment, explicitly reduce by pension for PA calculation
+    else if (isAutoEnrollment) {
+      return (bonusMonthGross - bonusMonthPensionContribution) * 12;
+    } 
+    // No pension, or relief-at-source (different mechanism)
+    else {
+      return bonusMonthGross * 12;
+    }
+  })();
+
+  const bonusMonthPersonalAllowance = usePersonalAllowance
+    ? calculatePersonalAllowance(bonusMonthAnnualizedIncome, taxYear)
+    : 0;
+  const bonusMonthMonthlyAllowance = bonusMonthPersonalAllowance / 12;
+
+  // Ensure auto enrollment is properly handled for taxable income
   const bonusMonthTaxableIncome = Math.max(
-    0, 
-    adjustedBonusMonthGross - monthlyAllowance - taxableAdjustment
+    0,
+    // For salary sacrifice, income is already reduced
+    isSalarySacrifice
+      ? adjustedBonusMonthGross - bonusMonthMonthlyAllowance
+      // For auto enrollment, subtract both allowance and pension
+      : isAutoEnrollment
+        ? bonusMonthGross - bonusMonthMonthlyAllowance - bonusMonthPensionContribution
+        // Otherwise just subtract allowance
+        : bonusMonthGross - bonusMonthMonthlyAllowance
   );
 
-  console.log('Adjusted bonus month gross:', adjustedBonusMonthGross);
-  console.log('Taxable adjustment (pension):', taxableAdjustment);  
-  console.log('Final bonus month taxable income:', bonusMonthTaxableIncome);
+  // Fix expected annual taxable calculation
+  const annualTaxable = annualisedIncomeWithBonus - annualPensionContribution - personalAllowance;
 
   let bonusMonthTax = 0;
 
@@ -231,35 +310,84 @@ export function calculateBonusMonth(inputs: BonusCalculationInputs): BonusMonthR
     const rate = rateMap[forcedRate] ?? 0.2;
     bonusMonthTax = bonusMonthTaxableIncome * rate;
   } else {
-    // Calculate adjusted annual salaries
-const regularAnnualGross = inputs.regularMonthlyGross * 12;
-const adjustedRegularIncome = isSalarySacrifice
-  ? regularAnnualGross - (bonusMonthPensionContribution * 12) // Salary sacrifice reduces total income
-  : isAutoEnrollment
-    ? regularAnnualGross - (bonusMonthPensionContribution * 12) // Auto-enrolment reduces taxable income
-    : regularAnnualGross;
-
-const adjustedBonusIncome = isSalarySacrifice
-  ? annualisedIncomeWithBonus - (bonusMonthPensionContribution * 12)
-  : isAutoEnrollment
-    ? annualisedIncomeWithBonus - (bonusMonthPensionContribution * 12)
-    : annualisedIncomeWithBonus;
-
-// Calculate regular annual tax using the appropriate tax function
-  const regularAnnualTax = inputs.residentInScotland
-    ? calculateScottishTax(adjustedRegularIncome, undefined, taxYear).tax
-    : calculateTax(adjustedRegularIncome, undefined, taxYear).tax;
-
-// Calculate total annual tax with bonus included
-  const totalAnnualTax = inputs.residentInScotland
-    ? calculateScottishTax(adjustedBonusIncome, undefined, taxYear).tax
-    : calculateTax(adjustedBonusIncome, undefined, taxYear).tax;
-
-// Derive the bonus month tax by subtracting 11 months of regular tax from the annual tax
-bonusMonthTax = Math.floor((totalAnnualTax - (regularAnnualTax * 11 / 12)) * 100) / 100;
-
-
+    // We need separate pension contribution calculations for regular months and bonus month
+    // Define regularAnnualGross first - it was missing in the code
+    const regularAnnualGross = inputs.regularMonthlyGross * 12;
     
+    // For regular months (11 months)
+    const regularMonthPensionContribution = (() => {
+      if (inputs.pension?.type === 'salary_sacrifice' || isAutoEnrollment) {
+        // For salary sacrifice and auto-enrollment, calculate normal contribution without bonus
+        if (inputs.pension?.valueType === 'nominal') {
+          const frequency = inputs.pension.frequency || 'monthly';
+          return frequency === 'yearly' ? inputs.pension.value / 12 : inputs.pension.value;
+        } else {
+          // Use regular monthly gross for calculating normal monthly contribution
+          return calculateSalaryContribution(
+            regularAnnualGross,  // Use annual gross without bonus
+            inputs.pension.value,
+            inputs.pension.valueType,
+            inputs.pension.earningsBasis,
+            inputs.pension.frequency
+          ) / 12;
+        }
+      }
+      return 0;
+    })();
+
+    // Calculate the correct pension difference between regular and bonus months
+    const bonusMonthPensionDifference = (() => {
+      // Only calculate this if pension includes bonus
+      if (!inputs.pension?.includeBonusPension) return 0;
+      
+      // Calculate the difference between:
+      // 1. Pension contribution for month with bonus
+      // 2. Regular monthly pension contribution
+      if (inputs.pension?.valueType === 'percentage') {
+        // For percentage-based pensions, calculate based on percentage of bonus
+        const rate = inputs.pension.value / 100;
+        return inputs.bonusAmount * rate;
+      } else {
+        // For nominal pensions, there's no difference
+        return 0;
+      }
+    })();
+
+    // Calculate regular annual tax correctly - this is unchanged
+    const regularMonthlyPensionAdjustment = isSalarySacrifice || isAutoEnrollment 
+      ? regularMonthPensionContribution 
+      : 0;
+    
+    const adjustedRegularIncome = regularAnnualGross - (regularMonthlyPensionAdjustment * 12);
+
+    // For bonus month, use correct pension adjustment based on whether bonus is included
+    const adjustedBonusIncome = (() => {
+      if (isSalarySacrifice || isAutoEnrollment) {
+        const totalPensionReduction = regularMonthlyPensionAdjustment * 12;
+        
+        // If pension includes bonus, add the additional pension contribution from bonus
+        if (inputs.pension?.includeBonusPension) {
+          return annualisedIncomeWithBonus - (totalPensionReduction + bonusMonthPensionDifference);
+        } else {
+          // No bonus in pension - use same pension reduction as regular income
+          return annualisedIncomeWithBonus - totalPensionReduction;
+        }
+      }
+      return annualisedIncomeWithBonus;
+    })();
+
+    // Calculate regular annual tax using the appropriate tax function
+    const regularAnnualTax = inputs.residentInScotland
+      ? calculateScottishTax(adjustedRegularIncome, undefined, taxYear).tax
+      : calculateTax(adjustedRegularIncome, undefined, taxYear).tax;
+
+    // Calculate total annual tax with bonus included
+    const totalAnnualTax = inputs.residentInScotland
+      ? calculateScottishTax(adjustedBonusIncome, undefined, taxYear).tax
+      : calculateTax(adjustedBonusIncome, undefined, taxYear).tax;
+
+    // Derive the bonus month tax by subtracting 11 months of regular tax from the annual tax
+    bonusMonthTax = Math.floor((totalAnnualTax - (regularAnnualTax * 11 / 12)) * 100) / 100;
   }
 
   // For NI calculation, use the adjustedBonusMonthGross (which is reduced for salary sacrifice only)
@@ -287,6 +415,7 @@ bonusMonthTax = Math.floor((totalAnnualTax - (regularAnnualTax * 11 / 12)) * 100
     studentLoan: bonusMonthStudentLoan,
     pensionContribution: bonusMonthPensionContribution,
     takeHome: bonusMonthTakeHome,
-    personalAllowance: personalAllowance,
+    personalAllowance: bonusMonthPersonalAllowance,
+    annualTaxable: annualTaxable
   };
 }
